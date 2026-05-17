@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useMemo, useState, type FormEvent } from 'react';
-import { IconChevronDown, IconChevronUp, IconMapPin, IconPlus } from '@tabler/icons-react';
+import { IconPlus, IconX } from '@tabler/icons-react';
 import {
   useAddRescueReport,
   useRescueReports,
@@ -9,13 +9,13 @@ import {
 import type { RescuePriority, RescueReport } from '@/lib/dexie';
 import { Page, PageHeader, PageTitle, PageDescription } from '@/components/ui/page';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertBody } from '@/components/ui/alert';
 import { PriorityBadge } from '@/components/ui/priority-badge';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { OfflineBadge, useOnlineStatus } from '@/components/ui/offline-badge';
+import { useOnlineStatus } from '@/components/ui/offline-badge';
 import { cn } from '@/lib/utils';
 
 const priorities: RescuePriority[] = ['critical', 'high', 'medium', 'low'];
@@ -55,7 +55,7 @@ function ReportsPage() {
     const people = Number(form.get('people') ?? 1);
 
     if (!household || !location || !Number.isFinite(people) || people < 1) {
-      setFormError('Punan ang lahat ng required fields. Fill in all required fields.');
+      setFormError('Punan ang lahat ng required fields.');
       return;
     }
 
@@ -67,33 +67,27 @@ function ReportsPage() {
           setIsFormOpen(false);
         },
         onError: error => {
-          setFormError(error instanceof Error ? error.message : 'Hindi nai-save. Could not save.');
+          setFormError(error instanceof Error ? error.message : 'Hindi nai-save.');
         },
       }
     );
   }
 
   return (
-    <Page width="wide" className="flex flex-col gap-8">
+    <Page width="wide" className="flex flex-col gap-10">
       <PageHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex flex-col gap-2">
-            <PageTitle>Rescue queue</PageTitle>
-            <PageDescription>
-              File a new rescue report or work through the queue. All entries save to this device
-              first and sync when online.
-            </PageDescription>
-          </div>
-          <OfflineBadge showOnline />
-        </div>
+        <PageTitle>Rescue queue</PageTitle>
+        <PageDescription>
+          File a new rescue report or work through the queue. Saves locally, syncs when online.
+        </PageDescription>
       </PageHeader>
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-heading-lg text-foreground">Bagong Report · New report</h2>
+          <h2 className="text-heading-md font-semibold text-foreground">Bagong Report</h2>
           <Button
-            size="lg"
-            variant={isFormOpen ? 'secondary' : 'primary'}
+            size="md"
+            variant={isFormOpen ? 'ghost' : 'primary'}
             type="button"
             onClick={() => {
               setIsFormOpen(open => !open);
@@ -101,16 +95,17 @@ function ReportsPage() {
             }}
             aria-expanded={isFormOpen}
             aria-controls="new-report-form"
+            aria-label={isFormOpen ? 'Hide form' : 'Add report'}
           >
             {isFormOpen ? (
               <>
-                <IconChevronUp aria-hidden="true" />
-                Itago · Hide form
+                <IconX aria-hidden="true" />
+                Itago
               </>
             ) : (
               <>
                 <IconPlus aria-hidden="true" />
-                Magdagdag · Add report
+                Magdagdag
               </>
             )}
           </Button>
@@ -118,20 +113,20 @@ function ReportsPage() {
 
         {isFormOpen ? (
           <Card asChild>
-            <form id="new-report-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <CardHeader>
-                <CardTitle>Mga detalye · Report details</CardTitle>
-                <CardDescription>
-                  One question at a time, biggest first. Saves locally even without signal.
-                </CardDescription>
-              </CardHeader>
+            <form id="new-report-form" onSubmit={handleSubmit} className="gap-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Label htmlFor="household" className="sm:col-span-2">
-                  Pangalan ng pamilya o tao · Requester or household
-                  <Input id="household" name="household" required autoComplete="off" />
+                  Pangalan ng pamilya o tao
+                  <Input
+                    id="household"
+                    name="household"
+                    required
+                    autoComplete="off"
+                    placeholder="Requester or household"
+                  />
                 </Label>
                 <Label htmlFor="location" className="sm:col-span-2">
-                  Lokasyon · Location
+                  Lokasyon
                   <Input
                     id="location"
                     name="location"
@@ -141,7 +136,7 @@ function ReportsPage() {
                   />
                 </Label>
                 <Label htmlFor="priority">
-                  Antas · Priority
+                  Antas
                   <Select id="priority" name="priority" defaultValue="medium" required>
                     {priorities.map(priority => (
                       <option key={priority} value={priority}>
@@ -151,7 +146,7 @@ function ReportsPage() {
                   </Select>
                 </Label>
                 <Label htmlFor="people">
-                  Ilan kayo? · People
+                  Ilan kayo?
                   <Input
                     id="people"
                     name="people"
@@ -163,7 +158,7 @@ function ReportsPage() {
                   />
                 </Label>
                 <Label htmlFor="notes" className="sm:col-span-2">
-                  Karagdagang sabihin · Notes
+                  Karagdagang sabihin
                   <Textarea
                     id="notes"
                     name="notes"
@@ -179,52 +174,55 @@ function ReportsPage() {
               {!isOnline ? (
                 <Alert tone="signal">
                   <AlertBody>
-                    Naka-offline ka — ise-save dito sa phone at ipapadala kapag may signal. Saved
-                    locally; will send when online.
+                    Naka-offline ka — ise-save dito sa phone at ipapadala kapag may signal.
                   </AlertBody>
                 </Alert>
               ) : null}
-              <CardContent>
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    type="submit"
-                    size="lg"
-                    isLoading={addReport.isPending}
-                    loadingLabel="Ise-save..."
-                  >
-                    I-save ang report · Save report
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="lg"
-                    onClick={() => {
-                      setIsFormOpen(false);
-                      setFormError(null);
-                    }}
-                  >
-                    Kanselahin · Cancel
-                  </Button>
-                </div>
-              </CardContent>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="submit"
+                  size="md"
+                  isLoading={addReport.isPending}
+                  loadingLabel="Ise-save..."
+                  aria-label="Save report"
+                >
+                  I-save
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="md"
+                  onClick={() => {
+                    setIsFormOpen(false);
+                    setFormError(null);
+                  }}
+                  aria-label="Cancel"
+                >
+                  Kanselahin
+                </Button>
+              </div>
             </form>
           </Card>
         ) : null}
       </section>
 
       <section aria-label="Queue" className="flex flex-col gap-3">
-        <h2 className="text-heading-lg text-foreground">Queue · {sortedReports.length}</h2>
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-heading-md font-semibold text-foreground">Queue</h2>
+          <span className="text-label-md text-muted-foreground">{sortedReports.length} total</span>
+        </div>
         {reportsQuery.isLoading ? (
           <p className="text-body-md text-muted-foreground">Loading reports.</p>
         ) : sortedReports.length === 0 ? (
           <p className="text-body-md text-muted-foreground">No reports yet.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {sortedReports.map(report => (
+          <ul className="flex flex-col rounded-md border border-border bg-surface">
+            {sortedReports.map((report, index) => (
               <ReportRow
                 key={report.id}
                 report={report}
                 isExpanded={expandedReportId === report.id}
+                isLast={index === sortedReports.length - 1}
                 onToggle={() =>
                   setExpandedReportId(current => (current === report.id ? null : report.id))
                 }
@@ -242,53 +240,54 @@ function ReportsPage() {
 type ReportRowProps = {
   report: RescueReport;
   isExpanded: boolean;
+  isLast: boolean;
   onToggle: () => void;
   onStatusChange: (status: RescueReport['status']) => void;
   isUpdating: boolean;
 };
 
-function ReportRow({ report, isExpanded, onToggle, onStatusChange, isUpdating }: ReportRowProps) {
+function ReportRow({
+  report,
+  isExpanded,
+  isLast,
+  onToggle,
+  onStatusChange,
+  isUpdating,
+}: ReportRowProps) {
   return (
     <li
       className={cn(
-        'rounded-md border bg-surface shadow-raised transition-colors duration-150',
-        isExpanded && 'border-primary/40'
+        'transition-colors',
+        !isLast && 'border-b border-border',
+        isExpanded && 'bg-surface-sunken'
       )}
     >
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={isExpanded}
-        className="flex w-full items-center gap-4 px-4 py-3 text-left"
+        className="grid w-full grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-4 py-3 text-left hover:bg-muted/40"
       >
         <PriorityBadge priority={report.priority} />
-        <span className="flex min-w-0 flex-1 items-center gap-2 text-body-md text-foreground">
-          <IconMapPin aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-          <span className="truncate">{report.location}</span>
-        </span>
+        <span className="min-w-0 truncate text-body-md text-foreground">{report.location}</span>
         <span className="hidden text-label-md text-muted-foreground sm:inline">
           {formatTimeSince(report.createdAt)}
         </span>
         <StatusBadge status={report.status} />
-        <span className="text-muted-foreground" aria-hidden="true">
-          {isExpanded ? (
-            <IconChevronUp className="size-4" />
-          ) : (
-            <IconChevronDown className="size-4" />
-          )}
-        </span>
       </button>
       {isExpanded ? (
-        <div className="flex flex-col gap-4 border-t bg-bg/40 px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 flex-col gap-2">
+        <div className="flex flex-col gap-3 px-4 pb-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 flex-col gap-1">
             <span className="text-label-md text-muted-foreground">
               Requester · {report.household}
             </span>
             <span className="text-label-md text-muted-foreground">People · {report.people}</span>
             <span className="text-label-md text-muted-foreground sm:hidden">
-              Filed · {formatTimeSince(report.createdAt)} ago
+              Filed {formatTimeSince(report.createdAt)} ago
             </span>
-            {report.notes ? <p className="text-body-md text-foreground">{report.notes}</p> : null}
+            {report.notes ? (
+              <p className="mt-1 text-body-md text-foreground">{report.notes}</p>
+            ) : null}
           </div>
           <Label htmlFor={`status-${report.id}`} className="sm:max-w-44">
             Status
@@ -320,10 +319,10 @@ function priorityRank(priority: RescuePriority) {
 function priorityLabel(priority: RescuePriority) {
   return (
     {
-      critical: 'Kritikal · Critical',
-      high: 'Mataas · High',
-      medium: 'Katamtaman · Medium',
-      low: 'Mababa · Low',
+      critical: 'Kritikal',
+      high: 'Mataas',
+      medium: 'Katamtaman',
+      low: 'Mababa',
     } satisfies Record<RescuePriority, string>
   )[priority];
 }
@@ -331,10 +330,10 @@ function priorityLabel(priority: RescuePriority) {
 function statusLabel(status: RescueReport['status']) {
   return (
     {
-      new: 'Bago · New',
-      triaged: 'Sinuri · Triaged',
-      responding: 'Tumutugon · Responding',
-      resolved: 'Tapos · Resolved',
+      new: 'Bago',
+      triaged: 'Sinuri',
+      responding: 'Tumutugon',
+      resolved: 'Tapos',
     } satisfies Record<RescueReport['status'], string>
   )[status];
 }

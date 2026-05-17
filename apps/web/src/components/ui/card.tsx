@@ -4,16 +4,19 @@ import { cn } from '@/lib/utils';
 
 type CardProps = React.ComponentProps<'div'> & {
   asChild?: boolean;
+  elevated?: boolean;
 };
 
-function Card({ className, asChild = false, ...props }: CardProps) {
+function Card({ className, asChild = false, elevated = false, ...props }: CardProps) {
   const Comp = asChild ? Slot.Root : 'div';
 
   return (
     <Comp
       data-slot="card"
+      data-elevated={elevated || undefined}
       className={cn(
-        'flex flex-col gap-4 rounded-lg border bg-surface p-6 shadow-raised',
+        'flex flex-col gap-3 rounded-md border bg-surface p-5',
+        elevated && 'shadow-raised',
         className
       )}
       {...props}
@@ -41,7 +44,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<'p'>) {
   return (
     <p
       data-slot="card-description"
-      className={cn('text-body-md text-muted-foreground', className)}
+      className={cn('text-label-md text-muted-foreground', className)}
       {...props}
     />
   );
@@ -57,7 +60,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card-footer"
-      className={cn('flex flex-wrap items-center gap-3', className)}
+      className={cn('flex flex-wrap items-center gap-2', className)}
       {...props}
     />
   );

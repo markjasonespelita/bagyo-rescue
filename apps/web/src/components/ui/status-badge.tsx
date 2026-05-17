@@ -7,11 +7,11 @@ type StatusBadgeProps = React.ComponentProps<'span'> & {
   status: Status;
 };
 
-const statusClassName: Record<Status, string> = {
-  new: 'border-status-new text-status-new bg-primary-soft',
-  triaged: 'border-status-triaged text-status-triaged bg-signal-soft',
-  responding: 'border-status-responding text-status-responding bg-primary-soft',
-  resolved: 'border-status-resolved text-status-resolved bg-safe-soft',
+const dotClassName: Record<Status, string> = {
+  new: 'bg-status-new',
+  triaged: 'bg-status-triaged',
+  responding: 'bg-status-responding',
+  resolved: 'bg-status-resolved',
 };
 
 const statusLabel: Record<Status, { tl: string; en: string }> = {
@@ -29,13 +29,17 @@ function StatusBadge({ status, className, ...props }: StatusBadgeProps) {
       data-slot="status-badge"
       data-status={status}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-caption font-semibold uppercase tracking-wide',
-        statusClassName[status],
+        'inline-flex items-center gap-1.5 text-label-md text-muted-foreground',
         className
       )}
       title={`${label.tl} (${label.en})`}
+      aria-label={`Status ${label.en}`}
       {...props}
     >
+      <span
+        aria-hidden="true"
+        className={cn('inline-block size-2 rounded-full', dotClassName[status])}
+      />
       {label.en}
     </span>
   );

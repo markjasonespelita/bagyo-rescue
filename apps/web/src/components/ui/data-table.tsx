@@ -25,7 +25,10 @@ function TableHead({ className, ...props }: React.ComponentProps<'thead'>) {
   return (
     <thead
       data-slot="table-head"
-      className={cn('bg-muted text-label-md text-muted-foreground', className)}
+      className={cn(
+        'border-b border-border bg-surface-sunken text-label-md text-muted-foreground',
+        className
+      )}
       {...props}
     />
   );
@@ -45,9 +48,9 @@ function TableRow({
       data-slot="table-row"
       data-selected={selected || undefined}
       className={cn(
-        'border-b border-border text-body-md text-foreground',
-        'data-[selected=true]:bg-primary-soft data-[selected=true]:shadow-[inset_3px_0_0_var(--color-primary)]',
-        'hover:bg-muted/60',
+        'border-b border-border text-body-md text-foreground last:border-b-0',
+        'data-[selected=true]:bg-primary-soft/60',
+        'hover:bg-muted/40',
         className
       )}
       {...props}
@@ -60,7 +63,7 @@ function TableHeaderCell({ className, ...props }: React.ComponentProps<'th'>) {
     <th
       data-slot="table-header-cell"
       className={cn(
-        'px-4 py-3 text-left align-top text-label-md font-semibold uppercase tracking-wide text-muted-foreground',
+        'px-4 py-2.5 text-left align-middle text-label-md font-medium text-muted-foreground',
         className
       )}
       {...props}

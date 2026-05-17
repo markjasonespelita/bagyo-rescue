@@ -2,20 +2,22 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 type WordmarkProps = React.ComponentProps<'span'> & {
-  hideText?: boolean;
+  tagline?: boolean;
 };
 
-function Wordmark({ className, hideText = false, ...props }: WordmarkProps) {
+function Wordmark({ className, tagline = false, ...props }: WordmarkProps) {
   return (
     <span
       data-slot="wordmark"
-      className={cn('inline-flex items-center gap-3 text-foreground', className)}
+      className={cn('inline-flex items-center gap-2.5 text-foreground', className)}
       {...props}
     >
-      <ShieldWaveGlyph className="size-9 text-primary" aria-hidden="true" />
-      <span className={cn('flex flex-col leading-none', hideText && 'sr-only')}>
-        <span className="font-display text-heading-md font-bold tracking-tight">Bagyo Rescue</span>
-        <span className="text-caption text-muted-foreground">Tulong sa Bagyo</span>
+      <ShieldWaveGlyph className="size-7 text-primary" aria-hidden="true" />
+      <span className="flex flex-col leading-none">
+        <span className="font-display text-body-lg font-bold tracking-tight">Bagyo Rescue</span>
+        {tagline ? (
+          <span className="mt-0.5 text-caption text-muted-foreground">Tulong sa Bagyo</span>
+        ) : null}
       </span>
     </span>
   );

@@ -1,9 +1,10 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { dexieSchema } from './schema';
-import type { RescueReport } from './types';
+import type { RescuePing, RescueReport } from './types';
 
 export type BagyoRescueDexie = Dexie & {
   reports: EntityTable<RescueReport, 'id'>;
+  rescuePings: EntityTable<RescuePing, 'id'>;
 };
 
 export function createDexieClient() {

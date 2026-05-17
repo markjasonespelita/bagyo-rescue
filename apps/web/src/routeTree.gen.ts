@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResidentRouteImport } from './routes/resident'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RecordsRouteImport } from './routes/records'
+import { Route as PingRouteImport } from './routes/ping'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RecordsIndexRouteImport } from './routes/records/index'
@@ -37,6 +38,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const RecordsRoute = RecordsRouteImport.update({
   id: '/records',
   path: '/records',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PingRoute = PingRouteImport.update({
+  id: '/ping',
+  path: '/ping',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -100,6 +106,7 @@ const RecordsBarangaysRoute = RecordsBarangaysRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ping': typeof PingRoute
   '/records': typeof RecordsRouteWithChildren
   '/reports': typeof ReportsRoute
   '/resident': typeof ResidentRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ping': typeof PingRoute
   '/reports': typeof ReportsRoute
   '/resident': typeof ResidentRoute
   '/records/barangays': typeof RecordsBarangaysRoute
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ping': typeof PingRoute
   '/records': typeof RecordsRouteWithChildren
   '/reports': typeof ReportsRoute
   '/resident': typeof ResidentRoute
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/ping'
     | '/records'
     | '/reports'
     | '/resident'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/ping'
     | '/reports'
     | '/resident'
     | '/records/barangays'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/ping'
     | '/records'
     | '/reports'
     | '/resident'
@@ -198,6 +210,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  PingRoute: typeof PingRoute
   RecordsRoute: typeof RecordsRouteWithChildren
   ReportsRoute: typeof ReportsRoute
   ResidentRoute: typeof ResidentRoute
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       path: '/records'
       fullPath: '/records'
       preLoaderRoute: typeof RecordsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ping': {
+      id: '/ping'
+      path: '/ping'
+      fullPath: '/ping'
+      preLoaderRoute: typeof PingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -337,6 +357,7 @@ const RecordsRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  PingRoute: PingRoute,
   RecordsRoute: RecordsRouteWithChildren,
   ReportsRoute: ReportsRoute,
   ResidentRoute: ResidentRoute,

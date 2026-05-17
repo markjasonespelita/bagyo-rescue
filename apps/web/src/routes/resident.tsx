@@ -3,11 +3,9 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import {
   IconCamera,
   IconKeyboard,
-  IconPhoneCall,
   IconPhotoUp,
   IconPlayerStop,
   IconQrcode,
-  IconShieldExclamation,
   IconUpload,
 } from '@tabler/icons-react';
 import QRCode from 'qrcode';
@@ -26,10 +24,10 @@ import { Constants, type Database } from '@/lib/supabase/types';
 import { Page, PageHeader, PageTitle, PageDescription } from '@/components/ui/page';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input, Select, Textarea } from '@/components/ui/input';
-import { BilingualLabel, Label } from '@/components/ui/label';
+import { SosButton } from '@/components/ui/sos-button';
+import { Input, Select, Textarea, Checkbox } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertBody } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import {
   TableWrap,
   Table,
@@ -74,7 +72,7 @@ function ResidentPortalPage() {
     mutationFn: updateResidentFamilyStatusData,
     onSuccess: family => {
       setSession(current => (current ? { ...current, family } : current));
-      setFeedback('Naipadala ang update sa pamilya. Family status saved.');
+      setFeedback('Naipadala ang update ng pamilya.');
       setResidentError(null);
     },
   });
@@ -82,7 +80,7 @@ function ResidentPortalPage() {
     mutationFn: updateResidentHouseReportData,
     onSuccess: house => {
       setSession(current => (current ? { ...current, house } : current));
-      setFeedback('Naipadala ang ulat ng bahay. Household report saved.');
+      setFeedback('Naipadala ang ulat ng bahay.');
       setResidentError(null);
     },
   });
@@ -104,9 +102,7 @@ function ResidentPortalPage() {
     if (currentInsideCount + evacuatedCount + missingOrUnconfirmedCount > totalMembers) {
       familyMutation.reset();
       setFeedback(null);
-      setResidentError(
-        'Hindi pwedeng mas marami sa total ng pamilya. Counts cannot exceed total members.'
-      );
+      setResidentError('Hindi pwedeng mas marami sa total ng pamilya.');
       return;
     }
 
@@ -144,39 +140,22 @@ function ResidentPortalPage() {
   }
 
   return (
-    <Page width="wide" className="flex flex-col gap-8">
-      <SosHero />
+    <Page className="flex flex-col gap-10">
+      <section aria-label="Emergency" className="flex flex-col gap-2.5">
+        <SosButton asChild>
+          <Link to="/reports" />
+        </SosButton>
+        <p className="text-label-md text-muted-foreground">
+          Pindutin para humingi ng tulong ngayon. Tap to request rescue now.
+        </p>
+      </section>
 
       <PageHeader>
-        <PageTitle>
-          <span className="block">Para sa pamilya</span>
-          <span className="block text-heading-md font-normal text-muted-foreground">
-            Family rescue portal
-          </span>
-        </PageTitle>
+        <PageTitle>Para sa pamilya</PageTitle>
         <PageDescription>
           I-type o i-scan ang family code para makita ang status ng pamilya at malapit na evacuation
           center.
-          <span className="block text-label-md text-muted-foreground">
-            Enter or scan your family code to view your household status and nearby evacuation
-            centers.
-          </span>
         </PageDescription>
-        {session ? (
-          <Button
-            variant="secondary"
-            size="lg"
-            type="button"
-            className="self-start"
-            onClick={() => {
-              setSession(null);
-              setFeedback(null);
-              setResidentError(null);
-            }}
-          >
-            Tapusin ang session · End session
-          </Button>
-        ) : null}
       </PageHeader>
 
       {!session ? (
@@ -186,7 +165,23 @@ function ResidentPortalPage() {
           onSubmit={handleAccessSubmit}
         />
       ) : (
-        <section className="flex flex-col gap-6">
+        <section className="flex flex-col gap-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <ResidentBreadcrumb session={session} />
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              aria-label="End session"
+              onClick={() => {
+                setSession(null);
+                setFeedback(null);
+                setResidentError(null);
+              }}
+            >
+              Tapusin ang session
+            </Button>
+          </div>
           <ResidentSummary session={session} />
           <FamilyMembersTable session={session} />
           <EvacuationCentersList session={session} />
@@ -204,45 +199,6 @@ function ResidentPortalPage() {
         </section>
       )}
     </Page>
-  );
-}
-
-function SosHero() {
-  return (
-    <section
-      aria-label="Emergency request"
-      className="flex flex-col gap-4 rounded-xl border border-danger/30 bg-danger-soft p-6 sm:p-8"
-    >
-      <Button
-        asChild
-        variant="danger"
-        size="xl"
-        className="w-full justify-center gap-4 text-center"
-      >
-        <Link to="/reports">
-          <IconShieldExclamation aria-hidden="true" className="size-12" />
-          <span className="flex flex-col items-center leading-none">
-            <span className="text-display-2xl font-display font-bold uppercase tracking-tight">
-              Humingi ng Tulong
-            </span>
-            <span className="text-body-lg font-medium opacity-90">Request Rescue</span>
-          </span>
-        </Link>
-      </Button>
-      <p className="text-body-lg text-foreground">
-        Pindutin ang malaking pulang button kung may emergency ngayon.
-        <span className="block text-body-md text-muted-foreground">
-          Tap the big red button if you need rescue now.
-        </span>
-      </p>
-      <p className="text-label-md text-muted-foreground">
-        Para sa direktang tawag sa LGU, hanapin ang inyong barangay hotline.
-        <span className="inline-flex items-center gap-1 ml-1">
-          <IconPhoneCall aria-hidden="true" className="size-4" />
-          Call your barangay hotline for a direct line.
-        </span>
-      </p>
-    </section>
   );
 }
 
@@ -333,7 +289,7 @@ function ResidentAccessForm({ error, isSubmitting, onSubmit }: ResidentAccessFor
         if (!nextFamilyCode) return;
 
         setFamilyCode(nextFamilyCode);
-        setScanStatus('Na-scan na ang QR. Vina-validate...');
+        setScanStatus('Na-scan na ang QR.');
         familyValidationMutation.mutate({ familyCode: nextFamilyCode });
         setIsCameraActive(false);
       },
@@ -349,9 +305,7 @@ function ResidentAccessForm({ error, isSubmitting, onSubmit }: ResidentAccessFor
     scanner.start().catch((cameraError: unknown) => {
       if (!isMounted) return;
 
-      setAccessError(
-        getErrorMessage(cameraError, 'Hindi maipakita ang camera. Camera could not start.')
-      );
+      setAccessError(getErrorMessage(cameraError, 'Hindi nag-start ang camera.'));
       setIsCameraActive(false);
     });
 
@@ -390,7 +344,7 @@ function ResidentAccessForm({ error, isSubmitting, onSubmit }: ResidentAccessFor
     }
 
     setFamilyCode(nextFamilyCode);
-    setScanStatus('Vina-validate ang family code...');
+    setScanStatus('Vina-validate...');
     familyValidationMutation.mutate({ familyCode: nextFamilyCode });
   }
 
@@ -416,7 +370,7 @@ function ResidentAccessForm({ error, isSubmitting, onSubmit }: ResidentAccessFor
       }
 
       setFamilyCode(nextFamilyCode);
-      setScanStatus('Na-upload na ang QR. Vina-validate...');
+      setScanStatus('Na-upload na ang QR.');
       familyValidationMutation.mutate({ familyCode: nextFamilyCode });
     } catch (uploadError) {
       setValidatedFamily(null);
@@ -446,216 +400,219 @@ function ResidentAccessForm({ error, isSubmitting, onSubmit }: ResidentAccessFor
   }
 
   return (
-    <form
-      className="flex flex-col gap-6 rounded-lg border bg-surface p-6 shadow-raised"
-      onSubmit={handleSubmit}
-    >
-      <fieldset className="flex flex-col gap-3">
-        <legend className="text-label-md font-semibold text-foreground">
-          Paano gusto mong mag-sign in?
-          <span className="block text-caption font-normal text-muted-foreground">
-            How do you want to sign in?
-          </span>
-        </legend>
-        <div
-          className="grid grid-cols-1 gap-2 rounded-md bg-muted p-2 sm:grid-cols-3"
-          role="tablist"
-          aria-label="Family access method"
-        >
-          <AccessTabButton
-            isActive={activeMode === 'scan'}
-            onClick={() => setActiveMode('scan')}
-            icon={<IconCamera aria-hidden="true" />}
-            tl="I-scan ang QR"
-            en="Scan QR"
-          />
-          <AccessTabButton
-            isActive={activeMode === 'upload'}
-            onClick={() => {
-              setIsCameraActive(false);
-              setActiveMode('upload');
-            }}
-            icon={<IconUpload aria-hidden="true" />}
-            tl="Mag-upload ng QR"
-            en="Upload QR"
-          />
-          <AccessTabButton
-            isActive={activeMode === 'manual'}
-            onClick={() => {
-              setIsCameraActive(false);
-              setActiveMode('manual');
-            }}
-            icon={<IconKeyboard aria-hidden="true" />}
-            tl="I-type ang code"
-            en="Type the code"
-          />
-        </div>
-      </fieldset>
-
-      {activeMode === 'scan' ? (
-        <section className="flex flex-col gap-3" aria-label="Scan QR">
-          <div className="flex aspect-video items-center justify-center overflow-hidden rounded-md bg-foreground">
-            <video
-              ref={videoRef}
-              muted
-              playsInline
-              aria-label="QR scanner camera preview"
-              className="size-full object-cover"
+    <Card elevated asChild>
+      <form className="gap-5" onSubmit={handleSubmit}>
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-label-md font-medium text-foreground">
+            Paano gusto mong mag-sign in?
+          </legend>
+          <div
+            className="grid grid-cols-3 overflow-hidden rounded-md border border-border"
+            role="tablist"
+            aria-label="Family access method"
+          >
+            <AccessTabButton
+              isActive={activeMode === 'scan'}
+              onClick={() => setActiveMode('scan')}
+              icon={<IconCamera aria-hidden="true" />}
+              label="Scan QR"
+            />
+            <AccessTabButton
+              isActive={activeMode === 'upload'}
+              onClick={() => {
+                setIsCameraActive(false);
+                setActiveMode('upload');
+              }}
+              icon={<IconUpload aria-hidden="true" />}
+              label="Upload"
+            />
+            <AccessTabButton
+              isActive={activeMode === 'manual'}
+              onClick={() => {
+                setIsCameraActive(false);
+                setActiveMode('manual');
+              }}
+              icon={<IconKeyboard aria-hidden="true" />}
+              label="Type"
+              isLast
             />
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              type="button"
-              size="lg"
-              disabled={isBusy}
-              onClick={() => {
-                setAccessError(null);
-                setScanStatus('Itutok ang camera sa family QR code.');
-                setIsCameraActive(true);
-              }}
-            >
-              <IconCamera aria-hidden="true" />
-              Simulan ang camera · Start camera
-            </Button>
-            {isCameraActive ? (
+        </fieldset>
+
+        {activeMode === 'scan' ? (
+          <section className="flex flex-col gap-3" aria-label="Scan QR">
+            <div className="flex aspect-video items-center justify-center overflow-hidden rounded-md bg-foreground">
+              <video
+                ref={videoRef}
+                muted
+                playsInline
+                aria-label="QR scanner camera preview"
+                className="size-full object-cover"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
               <Button
-                variant="secondary"
-                size="lg"
                 type="button"
+                size="md"
+                disabled={isBusy}
+                aria-label="Start camera"
                 onClick={() => {
-                  setIsCameraActive(false);
-                  setScanStatus(null);
+                  setAccessError(null);
+                  setScanStatus('Itutok ang camera sa QR.');
+                  setIsCameraActive(true);
                 }}
               >
-                <IconPlayerStop aria-hidden="true" />
-                Itigil · Stop
+                <IconCamera aria-hidden="true" />
+                Simulan
               </Button>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
-
-      {activeMode === 'upload' ? (
-        <section className="flex flex-col gap-3" aria-label="Upload QR">
-          <label
-            htmlFor={uploadInputId}
-            className="flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border-strong bg-muted/40 p-6 text-center text-foreground"
-          >
-            <IconPhotoUp aria-hidden="true" className="size-8 text-muted-foreground" />
-            <span className="text-body-lg">Mag-upload ng family QR image</span>
-            <span className="text-label-md text-muted-foreground">
-              Upload a family QR image · PNG, JPG, or a clear screenshot works best.
-            </span>
-          </label>
-          <input
-            id={uploadInputId}
-            className="sr-only"
-            type="file"
-            accept="image/*"
-            disabled={isBusy}
-            onChange={handleQrUpload}
-          />
-        </section>
-      ) : null}
-
-      {activeMode === 'manual' ? (
-        <section className="flex flex-col gap-3" aria-label="Manual family code entry">
-          <ResidentAccessCombobox
-            label="Family code"
-            name="familyCode"
-            value={familyCode}
-            options={familyOptionsQuery.data ?? []}
-            isLoading={familyOptionsQuery.isFetching}
-            error={familyOptionsQuery.error}
-            placeholder="Hanapin o i-type ang pangalan ng pamilya"
-            hasSearchStarted={familyCode.trim().length >= 2}
-            disabled={isBusy}
-            onInputChange={handleFamilyCodeChange}
-            onSelect={option => {
-              setFamilyCode(option.code);
-              setAccessError(null);
-              setScanStatus('Vina-validate...');
-              familyValidationMutation.mutate({ familyCode: option.code });
-            }}
-          />
-          <Button
-            variant="secondary"
-            size="lg"
-            type="button"
-            className="self-start"
-            disabled={isBusy}
-            onClick={() => validateFamilyCode()}
-          >
-            I-validate ang code · Validate code
-          </Button>
-        </section>
-      ) : null}
-
-      {activeMode !== 'manual' ? (
-        <Label htmlFor="familyCodeReadout">
-          Family code
-          <Input
-            id="familyCodeReadout"
-            name="familyCode"
-            value={familyCode}
-            placeholder="Scan o upload ng QR"
-            disabled={isBusy}
-            onChange={event => handleFamilyCodeChange(event.currentTarget.value)}
-          />
-        </Label>
-      ) : null}
-
-      {isFamilyCodeValidated ? (
-        <section className="grid grid-cols-1 gap-4 rounded-md border bg-muted/40 p-4 sm:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="flex items-center gap-3">
-            <IconQrcode aria-hidden="true" className="size-6 text-primary" />
-            <div className="flex flex-col">
-              <strong className="text-body-lg text-foreground">
-                {validatedFamily.family_code}
-              </strong>
-              <span className="text-label-md text-muted-foreground">
-                {validatedFamily.family_name} · {validatedFamily.head_of_family}
-              </span>
+              {isCameraActive ? (
+                <Button
+                  variant="secondary"
+                  size="md"
+                  type="button"
+                  aria-label="Stop camera"
+                  onClick={() => {
+                    setIsCameraActive(false);
+                    setScanStatus(null);
+                  }}
+                >
+                  <IconPlayerStop aria-hidden="true" />
+                  Itigil
+                </Button>
+              ) : null}
             </div>
-          </div>
-          <ResidentFamilyQrPreview familyCode={validatedFamily.family_code} />
-          <Label htmlFor="pinCode" className="sm:col-span-2">
-            PIN code
-            <Input
-              id="pinCode"
-              name="pinCode"
-              type="password"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={4}
-              value={pinCode}
-              disabled={isSubmitting}
-              required
-              className="max-w-44"
-              onChange={event => {
+          </section>
+        ) : null}
+
+        {activeMode === 'upload' ? (
+          <section className="flex flex-col gap-3" aria-label="Upload QR">
+            <label
+              htmlFor={uploadInputId}
+              className="flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-surface-sunken p-6 text-center text-foreground hover:bg-muted/40"
+            >
+              <IconPhotoUp aria-hidden="true" className="size-7 text-muted-foreground" />
+              <span className="text-body-md">Mag-upload ng family QR image</span>
+              <span className="text-caption text-muted-foreground">
+                PNG, JPG, or a clear screenshot.
+              </span>
+            </label>
+            <input
+              id={uploadInputId}
+              className="sr-only"
+              type="file"
+              accept="image/*"
+              disabled={isBusy}
+              onChange={handleQrUpload}
+            />
+          </section>
+        ) : null}
+
+        {activeMode === 'manual' ? (
+          <section className="flex flex-col gap-3" aria-label="Manual family code entry">
+            <ResidentAccessCombobox
+              label="Family code"
+              name="familyCode"
+              value={familyCode}
+              options={familyOptionsQuery.data ?? []}
+              isLoading={familyOptionsQuery.isFetching}
+              error={familyOptionsQuery.error}
+              placeholder="Hanapin o i-type ang pangalan ng pamilya"
+              hasSearchStarted={familyCode.trim().length >= 2}
+              disabled={isBusy}
+              onInputChange={handleFamilyCodeChange}
+              onSelect={option => {
+                setFamilyCode(option.code);
                 setAccessError(null);
-                setPinCode(event.currentTarget.value);
+                setScanStatus('Vina-validate...');
+                familyValidationMutation.mutate({ familyCode: option.code });
               }}
             />
-          </Label>
-        </section>
-      ) : null}
+            <Button
+              variant="secondary"
+              size="md"
+              type="button"
+              className="self-start"
+              disabled={isBusy}
+              aria-label="Validate code"
+              onClick={() => validateFamilyCode()}
+            >
+              I-validate ang code
+            </Button>
+          </section>
+        ) : null}
 
-      <Button type="submit" size="lg" className="self-start" isLoading={isBusy}>
-        {isFamilyCodeValidated ? 'Simulan ang session · Start session' : 'Magpatuloy · Continue'}
-      </Button>
-      {scanStatus ? <p className="text-label-md text-primary">{scanStatus}</p> : null}
-      {accessError ? (
-        <Alert tone="danger">
-          <AlertBody>{accessError}</AlertBody>
-        </Alert>
-      ) : null}
-      {error ? (
-        <Alert tone="danger">
-          <AlertBody>{error.message}</AlertBody>
-        </Alert>
-      ) : null}
-    </form>
+        {activeMode !== 'manual' ? (
+          <Label htmlFor="familyCodeReadout">
+            Family code
+            <Input
+              id="familyCodeReadout"
+              name="familyCode"
+              value={familyCode}
+              placeholder="Scan o upload ng QR"
+              disabled={isBusy}
+              onChange={event => handleFamilyCodeChange(event.currentTarget.value)}
+            />
+          </Label>
+        ) : null}
+
+        {isFamilyCodeValidated ? (
+          <section className="flex flex-col gap-3 rounded-md border border-border bg-surface-sunken p-4">
+            <div className="flex items-center gap-3">
+              <IconQrcode aria-hidden="true" className="size-5 text-primary" />
+              <div className="flex flex-col">
+                <strong className="text-body-md text-foreground">
+                  {validatedFamily.family_code}
+                </strong>
+                <span className="text-label-md text-muted-foreground">
+                  {validatedFamily.family_name} · {validatedFamily.head_of_family}
+                </span>
+              </div>
+            </div>
+            <ResidentFamilyQrPreview familyCode={validatedFamily.family_code} />
+            <Label htmlFor="pinCode">
+              PIN code
+              <Input
+                id="pinCode"
+                name="pinCode"
+                type="password"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={4}
+                value={pinCode}
+                disabled={isSubmitting}
+                required
+                className="max-w-40"
+                onChange={event => {
+                  setAccessError(null);
+                  setPinCode(event.currentTarget.value);
+                }}
+              />
+            </Label>
+          </section>
+        ) : null}
+
+        <Button
+          type="submit"
+          size="lg"
+          className="self-start"
+          isLoading={isBusy}
+          aria-label={isFamilyCodeValidated ? 'Start session' : 'Continue'}
+        >
+          {isFamilyCodeValidated ? 'Simulan' : 'Magpatuloy'}
+        </Button>
+        {scanStatus ? <p className="text-label-md text-primary">{scanStatus}</p> : null}
+        {accessError ? (
+          <Alert tone="danger">
+            <AlertBody>{accessError}</AlertBody>
+          </Alert>
+        ) : null}
+        {error ? (
+          <Alert tone="danger">
+            <AlertBody>{error.message}</AlertBody>
+          </Alert>
+        ) : null}
+      </form>
+    </Card>
   );
 }
 
@@ -663,14 +620,14 @@ function AccessTabButton({
   isActive,
   onClick,
   icon,
-  tl,
-  en,
+  label,
+  isLast = false,
 }: {
   isActive: boolean;
   onClick: () => void;
   icon: React.ReactNode;
-  tl: string;
-  en: string;
+  label: string;
+  isLast?: boolean;
 }) {
   return (
     <button
@@ -679,18 +636,15 @@ function AccessTabButton({
       aria-selected={isActive}
       onClick={onClick}
       className={cn(
-        'flex min-h-12 flex-col items-center justify-center gap-1 rounded-md px-3 py-2 text-center',
-        'transition-colors duration-150',
+        'inline-flex min-h-11 items-center justify-center gap-2 px-3 py-2 text-label-md transition-colors',
+        !isLast && 'border-r border-border',
         isActive
-          ? 'bg-surface text-primary shadow-raised'
-          : 'bg-transparent text-muted-foreground hover:text-foreground'
+          ? 'bg-surface text-foreground font-semibold'
+          : 'bg-surface-sunken text-muted-foreground hover:text-foreground'
       )}
     >
-      <span className="inline-flex items-center gap-2 text-label-md font-semibold">
-        {icon}
-        {tl}
-      </span>
-      <span className="text-caption text-muted-foreground">{en}</span>
+      {icon}
+      {label}
     </button>
   );
 }
@@ -736,14 +690,14 @@ function ResidentAccessCombobox({
 
   return (
     <div
-      className="relative flex flex-col gap-2"
+      className="relative flex flex-col gap-1.5"
       onBlur={event => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
           setIsOpen(false);
         }
       }}
     >
-      <label htmlFor={inputId} className="text-label-md font-semibold text-foreground">
+      <label htmlFor={inputId} className="text-label-md font-medium text-foreground">
         {label}
       </label>
       <div className="relative">
@@ -772,14 +726,12 @@ function ResidentAccessCombobox({
           <div
             id={listboxId}
             role="listbox"
-            className="absolute left-0 right-0 top-full z-30 mt-2 flex max-h-72 flex-col gap-1 overflow-y-auto rounded-md border bg-surface p-2 shadow-raised"
+            className="absolute left-0 right-0 top-full z-30 mt-1.5 flex max-h-72 flex-col gap-0.5 overflow-y-auto rounded-md border bg-surface p-1.5 shadow-raised"
           >
             {isLoading ? (
               <p className="px-3 py-2 text-label-md text-muted-foreground">Hinahanap...</p>
             ) : null}
-            {error ? (
-              <p className="px-3 py-2 text-label-md text-danger">Hindi available ang paghahanap.</p>
-            ) : null}
+            {error ? <p className="px-3 py-2 text-label-md text-danger">Hindi available.</p> : null}
             {!isLoading && !error && hasSearchStarted && options.length === 0 ? (
               <p className="px-3 py-2 text-label-md text-muted-foreground">Walang nahanap.</p>
             ) : null}
@@ -801,12 +753,12 @@ function ResidentAccessCombobox({
                       setIsOpen(false);
                     }}
                     className={cn(
-                      'flex min-h-12 flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left',
-                      'hover:bg-muted aria-[selected=true]:bg-primary-soft'
+                      'flex min-h-11 flex-col items-start gap-0.5 rounded-sm px-3 py-2 text-left',
+                      'hover:bg-muted/40 aria-[selected=true]:bg-primary-soft'
                     )}
                   >
                     <span className="text-caption font-semibold text-primary">{option.code}</span>
-                    <strong className="text-body-md font-semibold text-foreground">
+                    <strong className="text-body-md font-medium text-foreground">
                       {option.title}
                     </strong>
                     {option.subtitle ? (
@@ -852,53 +804,50 @@ function ResidentFamilyQrPreview({ familyCode }: { familyCode: string }) {
   }, [familyCode]);
 
   return (
-    <div className="flex items-center gap-3 rounded-md border bg-surface p-3 sm:col-span-2">
+    <div className="flex items-center gap-3 rounded-md border border-border bg-surface p-3">
       {qrDataUrl ? (
         <img
           alt={`QR code for ${familyCode}`}
           src={qrDataUrl}
-          className="size-18 rounded-sm border bg-white"
+          className="size-16 rounded-sm border border-border bg-white"
         />
       ) : (
-        <span className="size-18 rounded-sm border bg-muted" />
+        <span className="size-16 rounded-sm border border-border bg-muted" />
       )}
       <div className="flex flex-col">
-        <strong className="text-body-md font-semibold text-foreground">Family QR</strong>
+        <strong className="text-body-md font-medium text-foreground">Family QR</strong>
         <small className="text-label-md text-muted-foreground">{familyCode}</small>
       </div>
     </div>
   );
 }
 
+function ResidentBreadcrumb({ session }: { session: ResidentSessionData }) {
+  return (
+    <p className="text-label-md text-muted-foreground">
+      <span className="font-medium text-foreground">{session.family.family_name}</span> ·{' '}
+      {session.barangay.name}, {session.lgu.city_or_municipality}
+    </p>
+  );
+}
+
 function ResidentSummary({ session }: { session: ResidentSessionData }) {
   return (
-    <section
-      aria-label="Resident session summary"
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-    >
-      <SummaryCard
-        title={session.lgu.name}
-        body={`${session.lgu.city_or_municipality}, ${session.lgu.province}`}
-      />
-      <SummaryCard title={session.barangay.name} body={session.house.address} />
-      <SummaryCard
-        title={session.family.family_name}
-        body={`${session.family.total_members} miyembro · members`}
-      />
-      <SummaryCard
-        title={session.house.current_status}
-        body={`${session.house.water_level} · water level`}
-      />
+    <section aria-label="Household status" className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <SummaryItem label="Address" value={session.house.address} />
+      <SummaryItem label="Miyembro ng pamilya" value={`${session.family.total_members} tao`} />
+      <SummaryItem label="Status ng bahay" value={String(session.house.current_status)} />
+      <SummaryItem label="Lalim ng tubig" value={String(session.house.water_level)} />
     </section>
   );
 }
 
-function SummaryCard({ title, body }: { title: string; body: string }) {
+function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
-    <article className="flex flex-col gap-1 rounded-md border bg-surface p-4 shadow-raised">
-      <span className="text-body-lg font-semibold text-foreground">{title}</span>
-      <span className="text-label-md text-muted-foreground">{body}</span>
-    </article>
+    <div className="flex flex-col gap-1 border-t border-border pt-4">
+      <span className="text-caption uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="text-body-lg text-foreground">{value}</span>
+    </div>
   );
 }
 
@@ -906,17 +855,17 @@ function FamilyMembersTable({ session }: { session: ResidentSessionData }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Mga miyembro ng pamilya</CardTitle>
+        <CardTitle>Mga miyembro</CardTitle>
         <CardDescription>Family members in your household roster.</CardDescription>
       </CardHeader>
       <TableWrap>
         <Table>
           <TableHead>
             <TableRow>
-              <TableHeaderCell>Pangalan · Name</TableHeaderCell>
+              <TableHeaderCell>Pangalan</TableHeaderCell>
               <TableHeaderCell>Phone</TableHeaderCell>
               <TableHeaderCell>Status</TableHeaderCell>
-              <TableHeaderCell>Edad · Age</TableHeaderCell>
+              <TableHeaderCell>Edad</TableHeaderCell>
               <TableHeaderCell>Flags</TableHeaderCell>
             </TableRow>
           </TableHead>
@@ -944,9 +893,9 @@ function EvacuationCentersList({ session }: { session: ResidentSessionData }) {
     <Card>
       <CardHeader>
         <CardTitle>Mga evacuation center</CardTitle>
-        <CardDescription>Evacuation centers in your LGU.</CardDescription>
+        <CardDescription>Available centers in your LGU.</CardDescription>
       </CardHeader>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {session.evacuationCenters.map(center => {
           const occupancyTone = getOccupancyTone(center.current_occupancy, center.capacity);
           const destination = encodeURIComponent(`${center.name}, ${center.address}`);
@@ -955,42 +904,31 @@ function EvacuationCentersList({ session }: { session: ResidentSessionData }) {
           return (
             <article
               key={center.id}
-              className="flex flex-col gap-4 rounded-md border bg-surface p-4 shadow-raised"
+              className="flex flex-col gap-3 rounded-md border border-border bg-surface p-4"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex flex-col gap-1">
-                  <h3 className="text-heading-md text-foreground">{center.name}</h3>
-                  <p className="text-label-md text-muted-foreground">{center.address}</p>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <span
+                    aria-label={`Occupancy ${center.current_occupancy} of ${center.capacity}`}
+                    className={cn(
+                      'inline-block size-2 shrink-0 rounded-full',
+                      occupancyTone === 'safe' && 'bg-safe',
+                      occupancyTone === 'signal' && 'bg-signal',
+                      occupancyTone === 'danger' && 'bg-danger'
+                    )}
+                  />
+                  <h3 className="text-body-lg font-medium text-foreground">{center.name}</h3>
                 </div>
-                <span
-                  aria-label={`Occupancy ${center.current_occupancy} of ${center.capacity}`}
-                  className={cn(
-                    'inline-flex size-4 shrink-0 rounded-full',
-                    occupancyTone === 'safe' && 'bg-safe',
-                    occupancyTone === 'signal' && 'bg-signal',
-                    occupancyTone === 'danger' && 'bg-danger'
-                  )}
-                />
+                <p className="text-label-md text-muted-foreground">{center.address}</p>
               </div>
-              <dl className="grid grid-cols-3 gap-3 text-label-md">
-                <div className="flex flex-col">
-                  <dt className="text-caption uppercase text-muted-foreground">Status</dt>
-                  <dd className="text-body-md text-foreground">{center.status}</dd>
-                </div>
-                <div className="flex flex-col">
-                  <dt className="text-caption uppercase text-muted-foreground">Tao · People</dt>
-                  <dd className="text-body-md text-foreground">
-                    {center.current_occupancy} / {center.capacity}
-                  </dd>
-                </div>
-                <div className="flex flex-col">
-                  <dt className="text-caption uppercase text-muted-foreground">Supplies</dt>
-                  <dd className="text-body-md text-foreground">{formatCenterSupplies(center)}</dd>
-                </div>
+              <dl className="grid grid-cols-3 gap-3">
+                <SmallStat label="Status" value={String(center.status)} />
+                <SmallStat label="Tao" value={`${center.current_occupancy} / ${center.capacity}`} />
+                <SmallStat label="Supplies" value={formatCenterSupplies(center)} />
               </dl>
-              <Button asChild size="lg" className="self-start">
-                <a href={mapsHref} target="_blank" rel="noreferrer">
-                  Idirect ako dito · Take me here
+              <Button asChild variant="ghost" size="sm" className="self-start">
+                <a href={mapsHref} target="_blank" rel="noreferrer" aria-label="Take me here">
+                  Idirect ako dito →
                 </a>
               </Button>
             </article>
@@ -998,6 +936,15 @@ function EvacuationCentersList({ session }: { session: ResidentSessionData }) {
         })}
       </div>
     </Card>
+  );
+}
+
+function SmallStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-0 flex-col">
+      <dt className="text-caption uppercase tracking-wide text-muted-foreground">{label}</dt>
+      <dd className="m-0 truncate text-label-md text-foreground">{value}</dd>
+    </div>
   );
 }
 
@@ -1035,13 +982,13 @@ function ResidentUpdateForms({
   return (
     <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Card asChild>
-        <form onSubmit={onFamilySubmit} className="flex flex-col gap-4">
+        <form onSubmit={onFamilySubmit} className="gap-4">
           <CardHeader>
-            <CardTitle>I-update ang pamilya</CardTitle>
-            <CardDescription>Update family status.</CardDescription>
+            <CardTitle>Update pamilya</CardTitle>
+            <CardDescription>Family counts and notes.</CardDescription>
           </CardHeader>
           <Label htmlFor="currentInsideCount">
-            <BilingualLabel primary="Nasa loob ng bahay" secondary="Inside the house" />
+            Nasa loob ng bahay
             <Input
               id="currentInsideCount"
               name="currentInsideCount"
@@ -1053,7 +1000,7 @@ function ResidentUpdateForms({
             />
           </Label>
           <Label htmlFor="evacuatedCount">
-            <BilingualLabel primary="Lumikas na" secondary="Evacuated" />
+            Lumikas na
             <Input
               id="evacuatedCount"
               name="evacuatedCount"
@@ -1065,10 +1012,7 @@ function ResidentUpdateForms({
             />
           </Label>
           <Label htmlFor="missingOrUnconfirmedCount">
-            <BilingualLabel
-              primary="Nawawala o hindi sigurado"
-              secondary="Missing or unconfirmed"
-            />
+            Nawawala
             <Input
               id="missingOrUnconfirmedCount"
               name="missingOrUnconfirmedCount"
@@ -1079,21 +1023,22 @@ function ResidentUpdateForms({
               required
             />
           </Label>
-          <label className="flex min-h-12 items-center gap-3">
-            <input
-              name="needsAssistance"
-              type="checkbox"
-              defaultChecked={session.family.needs_assistance}
-              className="size-6 accent-primary"
-            />
-            <BilingualLabel primary="Kailangan ng tulong" secondary="Needs assistance" />
+          <label className="flex min-h-11 items-center gap-2.5 text-label-md font-medium text-foreground">
+            <Checkbox name="needsAssistance" defaultChecked={session.family.needs_assistance} />
+            Kailangan ng tulong
           </label>
           <Label htmlFor="notes">
-            <BilingualLabel primary="Karagdagang sabihin" secondary="Notes" />
+            Karagdagang sabihin
             <Textarea id="notes" name="notes" defaultValue={session.family.notes ?? ''} />
           </Label>
-          <Button type="submit" size="lg" isLoading={isFamilySubmitting} className="self-start">
-            I-save · Save family status
+          <Button
+            type="submit"
+            size="md"
+            isLoading={isFamilySubmitting}
+            className="self-start"
+            aria-label="Save family status"
+          >
+            I-save
           </Button>
           {residentError ? (
             <Alert tone="danger">
@@ -1109,13 +1054,13 @@ function ResidentUpdateForms({
       </Card>
 
       <Card asChild>
-        <form onSubmit={onHouseSubmit} className="flex flex-col gap-4">
+        <form onSubmit={onHouseSubmit} className="gap-4">
           <CardHeader>
-            <CardTitle>I-ulat ang bahay</CardTitle>
-            <CardDescription>Household condition.</CardDescription>
+            <CardTitle>Update bahay</CardTitle>
+            <CardDescription>Household condition right now.</CardDescription>
           </CardHeader>
           <Label htmlFor="currentStatus">
-            <BilingualLabel primary="Kasalukuyang status" secondary="Current status" />
+            Status ng bahay
             <Select
               id="currentStatus"
               name="currentStatus"
@@ -1130,7 +1075,7 @@ function ResidentUpdateForms({
             </Select>
           </Label>
           <Label htmlFor="waterLevel">
-            <BilingualLabel primary="Lalim ng tubig" secondary="Water level" />
+            Lalim ng tubig
             <Select
               id="waterLevel"
               name="waterLevel"
@@ -1144,8 +1089,14 @@ function ResidentUpdateForms({
               ))}
             </Select>
           </Label>
-          <Button type="submit" size="lg" isLoading={isHouseSubmitting} className="self-start">
-            I-submit ang ulat · Submit report
+          <Button
+            type="submit"
+            size="md"
+            isLoading={isHouseSubmitting}
+            className="self-start"
+            aria-label="Submit report"
+          >
+            I-submit
           </Button>
           {houseError ? (
             <Alert tone="danger">
@@ -1233,22 +1184,25 @@ function readFormNumber(form: FormData, key: string) {
 
 function formatResidentFlags(resident: ResidentSessionData['residents'][number]) {
   const flags = [
-    resident.is_child ? 'Bata · Child' : null,
+    resident.is_child ? 'Bata' : null,
     resident.is_senior ? 'Senior' : null,
     resident.is_pwd ? 'PWD' : null,
-    resident.is_pregnant ? 'Buntis · Pregnant' : null,
+    resident.is_pregnant ? 'Buntis' : null,
   ].filter(Boolean);
 
-  return flags.length ? (
-    <span className="flex flex-wrap gap-1">
+  if (!flags.length) return <span className="text-muted-foreground">—</span>;
+
+  return (
+    <span className="flex flex-wrap gap-1.5">
       {flags.map(flag => (
-        <Badge key={String(flag)} tone="signal">
+        <span
+          key={String(flag)}
+          className="inline-flex items-center rounded-sm border border-border bg-muted/40 px-1.5 py-0.5 text-caption text-foreground"
+        >
           {flag}
-        </Badge>
+        </span>
       ))}
     </span>
-  ) : (
-    <span className="text-muted-foreground">—</span>
   );
 }
 
@@ -1260,5 +1214,5 @@ function formatCenterSupplies(center: ResidentSessionData['evacuationCenters'][n
     center.has_power ? 'Kuryente' : null,
   ].filter(Boolean);
 
-  return supplies.length ? supplies.join(', ') : 'Walang naka-tag';
+  return supplies.length ? supplies.join(', ') : 'Wala';
 }

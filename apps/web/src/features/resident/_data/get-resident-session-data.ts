@@ -1,4 +1,5 @@
 import { type PublicTableRow } from '@/data';
+import { searchContactPersonsData } from '@/data/contact-persons';
 import { searchEvacuationCentersData } from '@/data/evacuation-centers';
 import { searchResidentsData } from '@/data/residents';
 import { supabase } from '@/lib/supabase';
@@ -16,6 +17,10 @@ export type ResidentSessionData = {
   family: PublicTableRow<'families'>;
   residents: PublicTableRow<'residents'>[];
   evacuationCenters: PublicTableRow<'evacuation_centers'>[];
+  emergencyContacts: {
+    lgu: PublicTableRow<'contact_persons'>[];
+    barangay: PublicTableRow<'contact_persons'>[];
+  };
 };
 
 export async function getResidentSessionData(
@@ -45,7 +50,12 @@ export async function getResidentSessionData(
     supabase.from('lgus').select('*').eq('id', barangay.lgu_id).single(),
     'LGU linked to this family was not found.'
   );
-  const [residentsResponse, evacuationCentersResponse] = await Promise.all([
+  const [
+    residentsResponse,
+    evacuationCentersResponse,
+    lguContactsResponse,
+    barangayContactsResponse,
+  ] = await Promise.all([
     searchResidentsData({
       limit: 100,
       sortBy: 'last_name',
@@ -58,6 +68,18 @@ export async function getResidentSessionData(
       orderBy: 'asc',
       filters: { lguId: lgu.id },
     }),
+    searchContactPersonsData({
+      limit: 10,
+      sortBy: 'is_primary',
+      orderBy: 'desc',
+      filters: { entityType: 'LGU', entityId: lgu.id },
+    }),
+    searchContactPersonsData({
+      limit: 10,
+      sortBy: 'is_primary',
+      orderBy: 'desc',
+      filters: { entityType: 'Barangay', entityId: barangay.id },
+    }),
   ]);
 
   return {
@@ -67,6 +89,10 @@ export async function getResidentSessionData(
     family,
     residents: residentsResponse.records,
     evacuationCenters: evacuationCentersResponse.records,
+    emergencyContacts: {
+      lgu: lguContactsResponse.records,
+      barangay: barangayContactsResponse.records,
+    },
   };
 }
 

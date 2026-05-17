@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { IconCloudOff, IconCloudCheck } from '@tabler/icons-react';
+import { IconCloudCheck, IconCloudOff } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
 
 function useOnlineStatus() {
@@ -30,7 +30,7 @@ function useOnlineStatus() {
 
 type OfflineBadgeProps = {
   className?: string;
-  /** When false, the badge stays hidden while online. Default true so coordinators can see "online" too. */
+  /** When true, render even while online. Default false: only show when offline. */
   showOnline?: boolean;
 };
 
@@ -45,24 +45,17 @@ function OfflineBadge({ className, showOnline = false }: OfflineBadgeProps) {
       aria-live="polite"
       data-online={isOnline}
       className={cn(
-        'inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-label-md',
-        isOnline
-          ? 'bg-safe-soft text-safe border border-safe/30'
-          : 'bg-signal-soft text-text-on-signal border border-signal/40',
+        'inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-label-md',
+        isOnline ? 'border-border text-muted-foreground' : 'border-signal/40 text-foreground',
         className
       )}
     >
       {isOnline ? (
-        <IconCloudCheck className="size-4" aria-hidden="true" />
+        <IconCloudCheck className="size-3.5 text-safe" aria-hidden="true" />
       ) : (
-        <IconCloudOff className="size-4" aria-hidden="true" />
+        <IconCloudOff className="size-3.5 text-signal" aria-hidden="true" />
       )}
-      <span className="flex flex-col leading-tight">
-        <span className="font-semibold">{isOnline ? 'May signal' : 'Naka-offline'}</span>
-        <span className="text-caption text-muted-foreground">
-          {isOnline ? 'Online' : 'Ipapadala kapag may signal'}
-        </span>
-      </span>
+      <span>{isOnline ? 'Online' : 'Naka-offline'}</span>
     </span>
   );
 }

@@ -269,6 +269,48 @@ export type Database = {
           },
         ];
       };
+      rescue_pings: {
+        Row: {
+          accuracy_meters: number | null;
+          client_created_at: string;
+          created_at: string;
+          id: string;
+          latitude: number;
+          longitude: number;
+          note: string | null;
+          phone_number: string;
+          source: string;
+          status: Database['public']['Enums']['rescue_ping_status'];
+          updated_at: string;
+        };
+        Insert: {
+          accuracy_meters?: number | null;
+          client_created_at: string;
+          created_at?: string;
+          id?: string;
+          latitude: number;
+          longitude: number;
+          note?: string | null;
+          phone_number: string;
+          source?: string;
+          status?: Database['public']['Enums']['rescue_ping_status'];
+          updated_at?: string;
+        };
+        Update: {
+          accuracy_meters?: number | null;
+          client_created_at?: string;
+          created_at?: string;
+          id?: string;
+          latitude?: number;
+          longitude?: number;
+          note?: string | null;
+          phone_number?: string;
+          source?: string;
+          status?: Database['public']['Enums']['rescue_ping_status'];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       families: {
         Row: {
           created_at: string;
@@ -506,6 +548,7 @@ export type Database = {
         | 'Community Center'
         | 'Other';
       house_status: 'Not Checked' | 'Safe' | 'Needs Assistance' | 'Needs Rescue' | 'Evacuated';
+      rescue_ping_status: 'New' | 'Acknowledged' | 'Responding' | 'Resolved';
       resident_status:
         | 'Inside House'
         | 'Evacuated'
@@ -671,6 +714,7 @@ export const Constants = {
         'Other',
       ],
       house_status: ['Not Checked', 'Safe', 'Needs Assistance', 'Needs Rescue', 'Evacuated'],
+      rescue_ping_status: ['New', 'Acknowledged', 'Responding', 'Resolved'],
       resident_status: [
         'Inside House',
         'Evacuated',

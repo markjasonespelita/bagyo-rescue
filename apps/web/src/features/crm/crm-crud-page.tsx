@@ -87,6 +87,7 @@ export function CrmCrudPage({ dataset }: CrmCrudPageProps) {
   const isMutating =
     createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
   const formInitialValues = mode === 'edit' ? selectedRow?.formValues : undefined;
+  const totalRecords = recordsQuery.data?.totalRecords ?? 0;
 
   useEffect(() => {
     setSelectedRowId(null);
@@ -121,67 +122,48 @@ export function CrmCrudPage({ dataset }: CrmCrudPageProps) {
   }
 
   return (
-    <Page width="wide" className="flex flex-col gap-6">
+    <Page width="wide" className="flex flex-col gap-8">
       <PageHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex flex-col gap-2">
-            <PageTitle>{dataset.label}</PageTitle>
-            <PageDescription>{dataset.description}</PageDescription>
-          </div>
-          <Badge tone={recordsQuery.isFetching ? 'primary' : 'safe'}>
-            {recordsQuery.isFetching ? 'Refreshing' : 'Synced'}
-          </Badge>
-        </div>
+        <PageTitle>{dataset.label}</PageTitle>
+        <PageDescription>
+          {dataset.description} <span className="text-muted-foreground">·</span>{' '}
+          <span className="text-foreground">{totalRecords}</span> records
+        </PageDescription>
       </PageHeader>
 
       <section
         aria-label={`${dataset.label} data access`}
-        className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]"
+        className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[15rem_minmax(0,1fr)]"
       >
         <CrmNavigation activeDatasetId={dataset.id} />
 
         <section className="flex min-w-0 flex-col gap-4">
-          <div className="flex flex-wrap items-start justify-between gap-4 rounded-md border bg-surface p-5 shadow-raised">
-            <div className="flex min-w-0 flex-col gap-1">
-              <span className="text-caption uppercase tracking-wide text-muted-foreground">
-                {dataset.metricLabel}
-              </span>
-              <h2 className="text-heading-lg text-foreground">{dataset.label}</h2>
-              <p className="text-body-md text-muted-foreground">{dataset.description}</p>
-            </div>
-            <div className="flex flex-wrap items-stretch gap-3">
-              <div className="flex min-w-36 flex-col gap-1 rounded-md border bg-bg p-4">
-                <span className="text-heading-lg font-semibold text-foreground">
-                  {recordsQuery.data?.totalRecords ?? 0}
-                </span>
-                <span className="text-label-md text-muted-foreground">Total records</span>
-              </div>
-              <Button
-                variant="primary"
-                size="lg"
-                type="button"
-                onClick={() => {
-                  setMode('create');
-                  setFormError(null);
-                }}
-              >
-                New {dataset.singularLabel}
-              </Button>
-            </div>
-          </div>
-
-          {dataset.searchPlaceholder ? (
-            <Label htmlFor="crm-search" hint="Search">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {dataset.searchPlaceholder ? (
               <Input
-                id="crm-search"
                 value={searchText}
                 onChange={event => setSearchText(event.target.value)}
                 placeholder={dataset.searchPlaceholder}
+                className="max-w-sm"
+                aria-label={`Search ${dataset.label}`}
               />
-            </Label>
-          ) : null}
+            ) : (
+              <span />
+            )}
+            <Button
+              variant="primary"
+              size="md"
+              type="button"
+              onClick={() => {
+                setMode('create');
+                setFormError(null);
+              }}
+            >
+              New {dataset.singularLabel}
+            </Button>
+          </div>
 
-          <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
             <CrmTable
               columns={dataset.columns}
               isLoading={recordsQuery.isLoading}
@@ -197,7 +179,7 @@ export function CrmCrudPage({ dataset }: CrmCrudPageProps) {
 
             <aside
               aria-label="Selected record"
-              className="sticky top-20 flex min-h-80 flex-col gap-4 rounded-md border bg-surface p-5 shadow-raised"
+              className="sticky top-20 flex min-h-72 flex-col gap-4 rounded-md border border-border bg-surface p-5"
             >
               {mode === 'create' || (mode === 'edit' && selectedRow) ? (
                 <RecordForm
@@ -253,26 +235,24 @@ type CrmNavigationProps = {
 
 export function CrmNavigation({ activeDatasetId }: CrmNavigationProps) {
   return (
-    <aside
-      aria-label="Record types"
-      className="flex flex-col gap-1 rounded-md border bg-surface p-2 shadow-raised lg:sticky lg:top-20"
-    >
+    <aside aria-label="Record types" className="flex flex-col gap-0.5 lg:sticky lg:top-20">
       {crmRoutes.map(route => {
         const isActive = route.datasetId === activeDatasetId;
+        const className = cn(
+          'flex min-h-10 items-center border-l-2 px-3 py-2 text-label-md transition-colors',
+          isActive
+            ? 'border-primary text-foreground font-semibold'
+            : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+        );
 
         return (
           <Link
             key={route.datasetId}
             to={route.to}
-            className={cn(
-              'flex min-h-11 items-center rounded-sm px-3 py-2 text-body-md',
-              isActive
-                ? 'bg-primary-soft text-primary font-semibold'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            )}
+            className={className}
             activeProps={{
               className:
-                'flex min-h-11 items-center rounded-sm px-3 py-2 text-body-md bg-primary-soft text-primary font-semibold',
+                'flex min-h-10 items-center border-l-2 px-3 py-2 text-label-md border-primary text-foreground font-semibold',
             }}
           >
             <span>{route.label}</span>
@@ -307,9 +287,9 @@ function CrmTable({ columns, isLoading, label, rows, selectedRowId, onSelect }: 
             <button
               type="button"
               onClick={() => onSelect(row)}
-              className="flex min-h-10 flex-col items-start gap-1 text-left"
+              className="flex flex-col items-start gap-0.5 text-left"
             >
-              <strong className="text-body-md font-semibold text-foreground">{row.title}</strong>
+              <strong className="text-body-md font-medium text-foreground">{row.title}</strong>
               {row.subtitle ? (
                 <span className="text-label-md text-muted-foreground">{row.subtitle}</span>
               ) : null}
@@ -348,18 +328,20 @@ function CrmTable({ columns, isLoading, label, rows, selectedRowId, onSelect }: 
                       type="button"
                       disabled={!header.column.getCanSort()}
                       onClick={header.column.getToggleSortingHandler()}
-                      className="flex w-full min-h-10 items-center justify-between gap-2 text-left text-label-md font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground"
+                      className="inline-flex items-center gap-1.5 text-label-md font-medium text-muted-foreground hover:text-foreground"
                     >
                       <span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
-                      <span aria-hidden="true" className="text-caption text-muted-foreground">
-                        {header.column.getIsSorted() === 'asc' ? (
-                          <IconSortAscending className="size-3.5" />
-                        ) : header.column.getIsSorted() === 'desc' ? (
-                          <IconSortDescending className="size-3.5" />
-                        ) : (
-                          <IconArrowsSort className="size-3.5" />
-                        )}
-                      </span>
+                      {header.column.getCanSort() ? (
+                        <span aria-hidden="true">
+                          {header.column.getIsSorted() === 'asc' ? (
+                            <IconSortAscending className="size-3.5" />
+                          ) : header.column.getIsSorted() === 'desc' ? (
+                            <IconSortDescending className="size-3.5" />
+                          ) : (
+                            <IconArrowsSort className="size-3.5 opacity-40" />
+                          )}
+                        </span>
+                      ) : null}
                     </button>
                   )}
                 </TableHeaderCell>
@@ -415,16 +397,13 @@ function RecordProfile({ dataset, isDeleting, row, onDelete, onEdit }: RecordPro
     <>
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <span className="text-caption uppercase tracking-wide text-muted-foreground">
-            Record profile
-          </span>
-          <h3 className="text-heading-md text-foreground">{row.title}</h3>
+          <h3 className="text-heading-md font-semibold text-foreground">{row.title}</h3>
           {row.subtitle ? (
-            <p className="text-body-md text-muted-foreground">{row.subtitle}</p>
+            <p className="text-label-md text-muted-foreground">{row.subtitle}</p>
           ) : null}
         </div>
         {row.tags?.length ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {row.tags.map(tag => (
               <Badge key={`${tag.label}-${tag.tone}`} tone={mapCrmToneToBadgeTone(tag.tone)}>
                 {tag.label}
@@ -433,15 +412,16 @@ function RecordProfile({ dataset, isDeleting, row, onDelete, onEdit }: RecordPro
           </div>
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" size="md" type="button" onClick={onEdit}>
+          <Button variant="secondary" size="sm" type="button" onClick={onEdit}>
             Edit
           </Button>
           <Button
-            variant="danger"
-            size="md"
+            variant="ghost"
+            size="sm"
             type="button"
             isLoading={isDeleting}
             onClick={onDelete}
+            className="text-danger hover:bg-danger-soft"
           >
             Delete {dataset.singularLabel}
           </Button>
@@ -452,9 +432,9 @@ function RecordProfile({ dataset, isDeleting, row, onDelete, onEdit }: RecordPro
         {row.details.map(detail => (
           <div
             key={detail.label}
-            className="flex flex-col gap-1 border-t border-border py-3 first:border-t-0"
+            className="flex flex-col gap-0.5 border-t border-border py-3 first:border-t-0"
           >
-            <dt className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+            <dt className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
               {detail.label}
             </dt>
             <dd className="m-0 break-words text-body-md text-foreground">
@@ -605,10 +585,7 @@ function RecordForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <span className="text-caption uppercase tracking-wide text-muted-foreground">
-          {mode === 'create' ? 'Create record' : 'Update record'}
-        </span>
-        <h3 className="text-heading-md text-foreground">
+        <h3 className="text-heading-md font-semibold text-foreground">
           {mode === 'create' ? `New ${dataset.singularLabel}` : `Edit ${dataset.singularLabel}`}
         </h3>
       </div>
@@ -637,13 +614,7 @@ function RecordForm({
         <Button type="submit" size="md" isLoading={isSubmitting}>
           {mode === 'create' ? 'Create' : 'Save'}
         </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="md"
-          disabled={isSubmitting}
-          onClick={onCancel}
-        >
+        <Button type="button" variant="ghost" size="md" disabled={isSubmitting} onClick={onCancel}>
           Cancel
         </Button>
       </div>
@@ -674,7 +645,7 @@ function RecordField({
 
   if (field.type === 'checkbox') {
     return (
-      <label className="flex min-h-10 items-center gap-2 text-body-md text-foreground">
+      <label className="flex min-h-10 items-center gap-2.5 text-label-md text-foreground">
         <Checkbox
           name={field.name}
           checked={Boolean(resolvedValue)}

@@ -7,11 +7,11 @@ type PriorityBadgeProps = React.ComponentProps<'span'> & {
   priority: Priority;
 };
 
-const priorityClassName: Record<Priority, string> = {
-  critical: 'bg-priority-critical text-white',
-  high: 'bg-priority-high text-text-on-signal',
-  medium: 'bg-priority-medium text-white',
-  low: 'bg-priority-low text-foreground',
+const dotClassName: Record<Priority, string> = {
+  critical: 'bg-priority-critical',
+  high: 'bg-priority-high',
+  medium: 'bg-priority-medium',
+  low: 'bg-priority-low',
 };
 
 const priorityLabel: Record<Priority, { tl: string; en: string }> = {
@@ -28,14 +28,15 @@ function PriorityBadge({ priority, className, ...props }: PriorityBadgeProps) {
     <span
       data-slot="priority-badge"
       data-priority={priority}
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5 text-caption font-semibold uppercase tracking-wide',
-        priorityClassName[priority],
-        className
-      )}
+      className={cn('inline-flex items-center gap-1.5 text-label-md text-foreground', className)}
       title={`${label.tl} (${label.en})`}
+      aria-label={`Priority ${label.en}`}
       {...props}
     >
+      <span
+        aria-hidden="true"
+        className={cn('inline-block size-2 rounded-full', dotClassName[priority])}
+      />
       {label.en}
     </span>
   );

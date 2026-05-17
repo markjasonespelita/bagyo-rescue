@@ -2,46 +2,57 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
+const dotClassName: Record<'neutral' | 'primary' | 'safe' | 'signal' | 'danger', string> = {
+  neutral: 'bg-muted-foreground/70',
+  primary: 'bg-primary',
+  safe: 'bg-safe',
+  signal: 'bg-signal',
+  danger: 'bg-danger',
+};
+
 const badgeVariants = cva(
-  'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-caption font-medium uppercase tracking-wide',
+  'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-label-md text-foreground',
   {
     variants: {
       tone: {
-        neutral: 'bg-muted text-muted-foreground',
-        primary: 'bg-primary-soft text-primary',
-        safe: 'bg-safe-soft text-safe',
-        signal: 'bg-signal-soft text-signal',
-        danger: 'bg-danger-soft text-danger',
-      },
-      solid: {
-        true: '',
-        false: '',
+        neutral: 'border-border bg-muted/40',
+        primary: 'border-border bg-surface',
+        safe: 'border-border bg-surface',
+        signal: 'border-border bg-surface',
+        danger: 'border-border bg-surface',
       },
     },
-    compoundVariants: [
-      { tone: 'primary', solid: true, class: 'bg-primary text-primary-foreground' },
-      { tone: 'safe', solid: true, class: 'bg-safe text-white' },
-      { tone: 'signal', solid: true, class: 'bg-signal text-text-on-signal' },
-      { tone: 'danger', solid: true, class: 'bg-danger text-white' },
-      { tone: 'neutral', solid: true, class: 'bg-foreground text-background' },
-    ],
     defaultVariants: {
       tone: 'neutral',
-      solid: false,
     },
   }
 );
 
-type BadgeProps = React.ComponentProps<'span'> & VariantProps<typeof badgeVariants>;
+type Tone = 'neutral' | 'primary' | 'safe' | 'signal' | 'danger';
 
-function Badge({ className, tone, solid, ...props }: BadgeProps) {
+type BadgeProps = React.ComponentProps<'span'> &
+  VariantProps<typeof badgeVariants> & {
+    dot?: boolean;
+  };
+
+function Badge({ className, tone, dot = true, children, ...props }: BadgeProps) {
+  const resolvedTone = (tone ?? 'neutral') as Tone;
+
   return (
     <span
       data-slot="badge"
-      data-tone={tone ?? 'neutral'}
-      className={cn(badgeVariants({ tone, solid }), className)}
+      data-tone={resolvedTone}
+      className={cn(badgeVariants({ tone }), className)}
       {...props}
-    />
+    >
+      {dot ? (
+        <span
+          aria-hidden="true"
+          className={cn('inline-block size-1.5 rounded-full', dotClassName[resolvedTone])}
+        />
+      ) : null}
+      {children}
+    </span>
   );
 }
 
