@@ -3,10 +3,12 @@ export {
   addReportHistory,
   getReportHistory,
   getReportHistoryWithOutboxState,
+  linkPendingReportHistoriesToAccess,
   listReportHistoriesWithOutboxState,
   listReportHistoryOutboxForSync,
   updateReportHistoryOutboxState,
   type AddReportHistoryInput,
+  type LinkPendingReportHistoriesToAccessInput,
   type ListReportHistoriesWithOutboxStateInput,
   type ListReportHistoryOutboxForSyncInput,
 } from './report-histories';

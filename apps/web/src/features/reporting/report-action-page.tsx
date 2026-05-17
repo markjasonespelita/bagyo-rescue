@@ -2,16 +2,20 @@ import {
   IconAlertTriangle,
   IconCheck,
   IconCurrentLocation,
+  IconKey,
   IconMapPin,
   IconRefresh,
   IconSend,
+  IconShieldCheck,
 } from '@tabler/icons-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { ResidentAccessPanel } from '@/features/resident/resident-access-gate';
 import {
-  ResidentAccessGate,
   type ResidentAccessSession,
-} from '@/features/resident/resident-access-gate';
+  useResidentAccessSession,
+} from '@/features/resident/resident-access-session';
 import {
+  useLinkPendingReportHistoriesToAccessMutation,
   useReportHistoriesQuery,
   useSubmitReportHistoryMutation,
   useSyncReportHistoriesMutation,
@@ -44,51 +48,120 @@ type ReportActionPageProps = {
 
 export function ReportActionPage({ type }: ReportActionPageProps) {
   const isFloodReport = type === 'Flood Report';
+  const { access, setAccess, endSession } = useResidentAccessSession();
 
   return (
-    <Page width="wide" className="flex flex-col gap-10">
+    <Page width="narrow" className="flex flex-col gap-6 pb-24 pt-6 sm:pt-10">
       <PageHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex max-w-2xl flex-col gap-2">
             <PageTitle>{isFloodReport ? 'Report flood' : 'Request rescue'}</PageTitle>
             <PageDescription>
               {isFloodReport
-                ? 'Send a flood condition update from your family record. Saves offline and syncs when signal returns.'
-                : 'Send your rescue request with family verification and GPS. Saves offline and syncs when signal returns.'}
+                ? 'Send a flood condition update now. It saves on this device first.'
+                : 'Send an urgent rescue request now. It saves on this device first.'}
             </PageDescription>
           </div>
           <OfflineBadge showOnline />
         </div>
       </PageHeader>
 
-      <ResidentAccessGate
-        title={isFloodReport ? 'Verify before reporting flood' : 'Verify before requesting rescue'}
-        description="Scan QR, upload QR, or enter family code and PIN to continue."
-      >
-        {access => <VerifiedReportForm type={type} access={access} />}
-      </ResidentAccessGate>
+      <FamilyAccessSection access={access} endSession={endSession} onAuthenticated={setAccess} />
+      <ReportForm type={type} access={access} />
     </Page>
   );
 }
 
-function VerifiedReportForm({
+function FamilyAccessSection({
+  access,
+  endSession,
+  onAuthenticated,
+}: {
+  access: ResidentAccessSession | null;
+  endSession: () => void;
+  onAuthenticated: (access: ResidentAccessSession) => void;
+}) {
+  const [isAddingAccess, setIsAddingAccess] = useState(false);
+
+  if (access) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-safe-soft p-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-safe text-text-on-safe">
+            <IconShieldCheck aria-hidden="true" className="size-5" />
+          </span>
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-body-md font-medium text-foreground">
+              {access.session.family.family_code}
+            </span>
+            <span className="truncate text-label-md text-muted-foreground">
+              {access.session.family.family_name}
+            </span>
+          </div>
+        </div>
+        <Button type="button" variant="ghost" size="sm" onClick={endSession}>
+          Unlink
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <section className="flex flex-col gap-3 rounded-md border border-border bg-surface p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary">
+            <IconKey aria-hidden="true" className="size-5" />
+          </span>
+          <div className="flex flex-col gap-1">
+            <h2 className="text-body-md font-semibold text-foreground">Family code optional</h2>
+            <p className="text-label-md text-muted-foreground">
+              File now without a code. Add your family code and PIN later to sync pending reports.
+            </p>
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => setIsAddingAccess(value => !value)}
+        >
+          {isAddingAccess ? 'Close' : 'Add'}
+        </Button>
+      </div>
+
+      {isAddingAccess ? (
+        <ResidentAccessPanel
+          title="Link family"
+          description="Scan QR, upload QR, or enter family code and PIN. Pending local reports will sync after this."
+          onAuthenticated={nextAccess => {
+            onAuthenticated(nextAccess);
+            setIsAddingAccess(false);
+          }}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+function ReportForm({
   type,
   access,
 }: {
   type: ReportHistoryType;
-  access: ResidentAccessSession & { endSession: () => void };
+  access: ResidentAccessSession | null;
 }) {
   const isOnline = useOnlineStatus();
-  const familyCode = access.session.family.family_code;
-  const reportHistoriesQuery = useReportHistoriesQuery({ family_code: familyCode, type });
+  const reportHistoriesQuery = useReportHistoriesQuery({ type });
   const submitReportHistory = useSubmitReportHistoryMutation();
   const syncReportHistories = useSyncReportHistoriesMutation();
+  const linkPendingReportHistories = useLinkPendingReportHistoriesToAccessMutation();
   const [capturedLocation, setCapturedLocation] = useState<CapturedLocation | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
-  const hasAttemptedStartupSyncRef = useRef(false);
+  const syncedAccessFamilyCodeRef = useRef<string | null>(null);
 
   const reportHistories = reportHistoriesQuery.data ?? [];
   const queuedCount = useMemo(
@@ -98,16 +171,43 @@ function VerifiedReportForm({
   const isFloodReport = type === 'Flood Report';
 
   useEffect(() => {
-    if (!isOnline) {
-      hasAttemptedStartupSyncRef.current = false;
+    if (!access) {
+      syncedAccessFamilyCodeRef.current = null;
       return;
     }
 
-    if (hasAttemptedStartupSyncRef.current || syncReportHistories.isPending) return;
+    if (!isOnline) {
+      syncedAccessFamilyCodeRef.current = null;
+      return;
+    }
 
-    hasAttemptedStartupSyncRef.current = true;
-    syncReportHistories.mutate({ family_code: familyCode });
-  }, [familyCode, isOnline, syncReportHistories]);
+    if (
+      syncedAccessFamilyCodeRef.current === access.session.family.family_code ||
+      linkPendingReportHistories.isPending ||
+      syncReportHistories.isPending
+    ) {
+      return;
+    }
+
+    syncedAccessFamilyCodeRef.current = access.session.family.family_code;
+    linkPendingReportHistories.mutate(
+      {
+        payload: {
+          family_id: access.session.family.id,
+          house_id: access.session.house.id,
+          family_code: access.session.family.family_code,
+          access_method: access.accessMethod,
+          phone_number: access.session.family.head_of_family_phone_number,
+          people_count: access.session.family.total_members,
+        },
+      },
+      {
+        onSuccess: () => {
+          syncReportHistories.mutate({ family_code: access.session.family.family_code });
+        },
+      }
+    );
+  }, [access, isOnline, linkPendingReportHistories, syncReportHistories]);
 
   async function handleLocate() {
     setLocationError(null);
@@ -132,7 +232,9 @@ function VerifiedReportForm({
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const phoneNumber = normalizePhoneNumber(String(form.get('phoneNumber') ?? ''));
-    const peopleCount = Number(form.get('peopleCount') ?? access.session.family.total_members);
+    const peopleCount = Number(
+      form.get('peopleCount') ?? access?.session.family.total_members ?? 1
+    );
     const note = String(form.get('note') ?? '').trim();
     const waterLevel = (String(form.get('waterLevel') ?? '') ||
       null) as ReportHistoryWaterLevel | null;
@@ -156,11 +258,11 @@ function VerifiedReportForm({
       {
         payload: {
           type,
-          family_id: access.session.family.id,
-          house_id: access.session.house.id,
-          family_code: access.session.family.family_code,
-          access_method: access.accessMethod,
-          phone_number: phoneNumber || (access.session.family.head_of_family_phone_number ?? null),
+          family_id: access?.session.family.id ?? null,
+          house_id: access?.session.house.id ?? null,
+          family_code: access?.session.family.family_code ?? null,
+          access_method: access?.accessMethod ?? 'local',
+          phone_number: phoneNumber || (access?.session.family.head_of_family_phone_number ?? null),
           latitude: capturedLocation?.latitude ?? null,
           longitude: capturedLocation?.longitude ?? null,
           accuracy_meters: capturedLocation?.accuracyMeters ?? null,
@@ -174,9 +276,11 @@ function VerifiedReportForm({
           formElement.reset();
           setCapturedLocation(null);
           setFeedback(
-            reportHistory.outbox_status === 'sent'
-              ? 'Naipadala ang report.'
-              : 'Naka-save sa device. Ipapadala kapag may signal.'
+            !access
+              ? 'Naka-save sa device. Add family code and PIN to sync.'
+              : reportHistory.outbox_status === 'sent'
+                ? 'Naipadala ang report.'
+                : 'Naka-save sa device. Ipapadala kapag may signal.'
           );
         },
         onError: error => {
@@ -187,25 +291,17 @@ function VerifiedReportForm({
   }
 
   return (
-    <section className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_23rem]">
+    <section className="flex flex-col gap-6">
       <Card asChild elevated>
         <form onSubmit={handleSubmit} className="gap-5">
           <CardHeader>
             <CardTitle>{isFloodReport ? 'Flood condition' : 'Rescue details'}</CardTitle>
             <CardDescription>
-              {access.session.family.family_name} · {access.session.barangay.name}
+              {access
+                ? `${access.session.family.family_name} · ${access.session.barangay.name}`
+                : 'No family code required to save on this device.'}
             </CardDescription>
           </CardHeader>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-surface-sunken p-4">
-            <div className="flex flex-col">
-              <span className="text-caption text-muted-foreground">Verified family</span>
-              <span className="text-body-md font-medium text-foreground">{familyCode}</span>
-            </div>
-            <Button type="button" variant="ghost" size="sm" onClick={access.endSession}>
-              End session
-            </Button>
-          </div>
 
           <Button
             type="button"
@@ -237,7 +333,7 @@ function VerifiedReportForm({
                 type="tel"
                 inputMode="tel"
                 autoComplete="tel"
-                defaultValue={access.session.family.head_of_family_phone_number ?? ''}
+                defaultValue={access?.session.family.head_of_family_phone_number ?? ''}
                 placeholder="09xx xxx xxxx"
               />
             </Label>
@@ -250,7 +346,7 @@ function VerifiedReportForm({
                 type="number"
                 inputMode="numeric"
                 min={0}
-                defaultValue={access.session.family.total_members}
+                defaultValue={access?.session.family.total_members ?? 1}
                 required
               />
             </Label>
@@ -261,7 +357,9 @@ function VerifiedReportForm({
                 <Select
                   id="waterLevel"
                   name="waterLevel"
-                  defaultValue={access.session.house.water_level}
+                  defaultValue={
+                    access?.session.house.water_level ?? Constants.public.Enums.water_level[0]
+                  }
                 >
                   {Constants.public.Enums.water_level.map(level => (
                     <option key={level} value={level}>
@@ -301,8 +399,15 @@ function VerifiedReportForm({
               <AlertBody>Naka-offline ka. Naka-save sa device at susubukan ulit.</AlertBody>
             </Alert>
           ) : null}
+          {!access ? (
+            <Alert tone="signal">
+              <AlertBody>
+                Reports stay local until this device is linked with a family code and PIN.
+              </AlertBody>
+            </Alert>
+          ) : null}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <Button
               type="submit"
               size="lg"
@@ -314,17 +419,38 @@ function VerifiedReportForm({
               <IconSend aria-hidden="true" />
               Ipadala
             </Button>
-            <Button
-              type="button"
-              size="lg"
-              variant="ghost"
-              isLoading={syncReportHistories.isPending}
-              loadingLabel="Syncing..."
-              onClick={() => syncReportHistories.mutate({ family_code: familyCode })}
-            >
-              <IconRefresh aria-hidden="true" />
-              Retry sync
-            </Button>
+            {access ? (
+              <Button
+                type="button"
+                size="lg"
+                variant="ghost"
+                isLoading={linkPendingReportHistories.isPending || syncReportHistories.isPending}
+                loadingLabel="Syncing..."
+                onClick={() => {
+                  linkPendingReportHistories.mutate(
+                    {
+                      payload: {
+                        family_id: access.session.family.id,
+                        house_id: access.session.house.id,
+                        family_code: access.session.family.family_code,
+                        access_method: access.accessMethod,
+                        phone_number: access.session.family.head_of_family_phone_number,
+                        people_count: access.session.family.total_members,
+                      },
+                    },
+                    {
+                      onSuccess: () =>
+                        syncReportHistories.mutate({
+                          family_code: access.session.family.family_code,
+                        }),
+                    }
+                  );
+                }}
+              >
+                <IconRefresh aria-hidden="true" />
+                Sync
+              </Button>
+            ) : null}
           </div>
         </form>
       </Card>
@@ -376,12 +502,14 @@ function LocationPreview({ location }: { location: CapturedLocation }) {
 }
 
 function ReportHistoryItem({ reportHistory }: { reportHistory: ReportHistoryWithOutboxState }) {
+  const needsFamilyAccess = !reportHistory.family_code && reportHistory.outbox_status !== 'sent';
+
   return (
     <li className="rounded-md border border-border bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1.5">
           <span className="text-body-md font-medium text-foreground">
-            {reportHistory.family_code}
+            {reportHistory.family_code ?? 'No family linked'}
           </span>
           <span className="text-label-md text-muted-foreground">
             {reportHistory.people_count ?? 0} people · {formatTimeSince(reportHistory.created_at)}{' '}
@@ -408,7 +536,10 @@ function ReportHistoryItem({ reportHistory }: { reportHistory: ReportHistoryWith
             <span className="text-caption text-danger">{reportHistory.outbox_last_error}</span>
           ) : null}
         </div>
-        <ReportSyncStatusBadge status={reportHistory.outbox_status} />
+        <ReportSyncStatusBadge
+          status={reportHistory.outbox_status}
+          needsFamilyAccess={needsFamilyAccess}
+        />
       </div>
     </li>
   );
@@ -435,20 +566,27 @@ const syncIcon: Record<ReportHistoryOutboxStatus, typeof IconCheck> = {
   failed: IconAlertTriangle,
 };
 
-function ReportSyncStatusBadge({ status }: { status: ReportHistoryOutboxStatus }) {
+function ReportSyncStatusBadge({
+  status,
+  needsFamilyAccess = false,
+}: {
+  status: ReportHistoryOutboxStatus;
+  needsFamilyAccess?: boolean;
+}) {
   const Icon = syncIcon[status];
+  const label = needsFamilyAccess ? 'Needs family' : syncLabel[status];
 
   return (
     <span
       className="inline-flex shrink-0 items-center gap-1.5 text-label-md text-muted-foreground"
-      title={syncLabel[status]}
+      title={label}
     >
       <span
         aria-hidden="true"
         className={cn('inline-block size-2 rounded-full', syncDotClassName[status])}
       />
       <Icon aria-hidden="true" className="size-3.5" />
-      {syncLabel[status]}
+      {label}
     </span>
   );
 }

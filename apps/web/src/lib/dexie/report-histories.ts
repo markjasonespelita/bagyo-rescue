@@ -39,6 +39,15 @@ export type ListReportHistoryOutboxForSyncInput = {
   family_code?: string;
 };
 
+export type LinkPendingReportHistoriesToAccessInput = {
+  family_id: string;
+  house_id: string;
+  family_code: string;
+  access_method: ReportHistory['access_method'];
+  phone_number?: string | null;
+  people_count?: number | null;
+};
+
 function createReportHistoryId() {
   return `report_${crypto.randomUUID().replaceAll('-', '')}`;
 }
@@ -195,8 +204,57 @@ export async function listReportHistoryOutboxForSync({
     : await dexie.reportHistoryOutbox.where('status').anyOf('queued', 'failed').toArray();
 
   return outboxRows
-    .filter(outbox => outbox.status === 'queued' || outbox.status === 'failed')
+    .filter(
+      outbox =>
+        Boolean(outbox.family_code) && (outbox.status === 'queued' || outbox.status === 'failed')
+    )
     .sort(sortOutboxByOldest);
+}
+
+export async function linkPendingReportHistoriesToAccess({
+  family_id,
+  house_id,
+  family_code,
+  access_method,
+  phone_number = null,
+  people_count = null,
+}: LinkPendingReportHistoriesToAccessInput) {
+  const normalizedFamilyCode = family_code.trim().toUpperCase();
+  const now = new Date().toISOString();
+  let linked = 0;
+
+  await dexie.transaction('rw', dexie.reportHistories, dexie.reportHistoryOutbox, async () => {
+    const pendingOutboxRows = await dexie.reportHistoryOutbox
+      .where('status')
+      .anyOf('queued', 'failed')
+      .toArray();
+
+    for (const outbox of pendingOutboxRows) {
+      if (outbox.family_code) continue;
+
+      const reportHistory = await dexie.reportHistories.get(outbox.report_history_id);
+      if (!reportHistory || reportHistory.family_code) continue;
+
+      await dexie.reportHistories.update(reportHistory.id, {
+        family_id,
+        house_id,
+        family_code: normalizedFamilyCode,
+        access_method,
+        phone_number: reportHistory.phone_number ?? phone_number,
+        people_count: reportHistory.people_count ?? people_count,
+        updated_at: now,
+      });
+      await dexie.reportHistoryOutbox.update(outbox.id, {
+        family_code: normalizedFamilyCode,
+        status: 'queued',
+        last_error: null,
+        updated_at: now,
+      });
+      linked += 1;
+    }
+  });
+
+  return { linked };
 }
 
 export async function updateReportHistoryOutboxState({

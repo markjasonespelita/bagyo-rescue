@@ -16,7 +16,11 @@ import {
   useRef,
   useState,
 } from 'react';
-import { getResidentSessionData, type ResidentSessionData } from '@/features/resident/_data';
+import { getResidentSessionData } from '@/features/resident/_data';
+import {
+  type ResidentAccessSession,
+  useResidentAccessSession,
+} from '@/features/resident/resident-access-session';
 import { Alert, AlertBody } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,58 +29,23 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { type ResidentAccessMethod } from '@/lib/dexie';
 
-export type ResidentAccessSession = {
-  session: ResidentSessionData;
-  accessMethod: ResidentAccessMethod;
-};
-
 export type ResidentAccessGateProps = {
   title?: string;
   description?: string;
   children: (access: ResidentAccessSession & { endSession: () => void }) => ReactNode;
 };
 
-const residentAccessStorageKey = 'bagyo-rescue.resident-access-session';
-
-function getStoredResidentAccessSession() {
-  const storedValue = window.localStorage.getItem(residentAccessStorageKey);
-
-  if (!storedValue) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(storedValue) as ResidentAccessSession;
-  } catch {
-    window.localStorage.removeItem(residentAccessStorageKey);
-    return null;
-  }
-}
-
-function setStoredResidentAccessSession(access: ResidentAccessSession) {
-  window.localStorage.setItem(residentAccessStorageKey, JSON.stringify(access));
-}
-
-function clearStoredResidentAccessSession() {
-  window.localStorage.removeItem(residentAccessStorageKey);
-}
-
 export function ResidentAccessGate({
   title = 'Family verification',
   description = 'Scan, upload, or enter your family code and PIN before sending a report.',
   children,
 }: ResidentAccessGateProps) {
-  const [access, setAccess] = useState<ResidentAccessSession | null>(() =>
-    getStoredResidentAccessSession()
-  );
+  const { access, setAccess, endSession } = useResidentAccessSession();
 
   if (access) {
     return children({
       ...access,
-      endSession: () => {
-        clearStoredResidentAccessSession();
-        setAccess(null);
-      },
+      endSession,
     });
   }
 
@@ -85,14 +54,13 @@ export function ResidentAccessGate({
       title={title}
       description={description}
       onAuthenticated={nextAccess => {
-        setStoredResidentAccessSession(nextAccess);
         setAccess(nextAccess);
       }}
     />
   );
 }
 
-function ResidentAccessPanel({
+export function ResidentAccessPanel({
   title,
   description,
   onAuthenticated,
