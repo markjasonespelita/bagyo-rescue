@@ -10,7 +10,7 @@ on:
     branches:
       - 'feature/**'
       - develop
-      - master
+      - main
 
 jobs:
   ci:
@@ -28,8 +28,8 @@ jobs:
       #   run: php artisan test
 
   release:
-    name: Semantic Release (master only)
-    if: github.ref == 'refs/heads/master'
+    name: Semantic Release (main only)
+    if: github.ref == 'refs/heads/main'
     needs: ci
     runs-on: ubuntu-latest
 
