@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/markjasonespelita/bagyo-rescue/compare/v1.0.0...v1.0.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* fix attempt 1 PR comment step failing. ([ec3b49c](https://github.com/markjasonespelita/bagyo-rescue/commit/ec3b49cd15bfc125811a6b95ca1a42e19b06929c))
+
 # 1.0.0 (2026-05-18)
 
 
